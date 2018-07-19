@@ -7,6 +7,8 @@
 *~
 *.swp
 
+exp_*/vqa-dataset/*
+exp_*/coco-images/*
 exp_*/data/*
 exp_*/tfmodel/*
 exp_*/results/*
