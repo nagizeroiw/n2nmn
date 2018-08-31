@@ -6,13 +6,15 @@ import sys
 sys.path.append('../../')
 from util import text_processing
 
+butd = True
+
 vocab_answer_file = './answers_vqa.txt'
 annotation_file = '../vqa-dataset/Annotations/v2_mscoco_%s_annotations.json'
 question_file = '../vqa-dataset/Questions/v2_OpenEnded_mscoco_%s_questions.json'
 gt_layout_file = './v2_gt_layout_%s_new_parse.npy'
 
-image_dir = '../vqa-dataset/Images/%s/'
-feature_dir = './resnet_res5c/%s/'
+image_dir = '../coco-images/%s/'
+feature_dir = './resnet_butd/%s/' if butd else './resnet_res5c/%s/'
 
 answer_dict = text_processing.VocabDict(vocab_answer_file)
 valid_answer_set = set(answer_dict.word_list)
@@ -85,9 +87,11 @@ imdb_val2014 = build_imdb('val2014')
 imdb_test2015 = build_imdb('test2015')
 imdb_test_dev2015 = build_imdb('test-dev2015')
 
-os.makedirs('./imdb_vqa_v2', exist_ok=True)
-np.save('./imdb_vqa_v2/imdb_train2014.npy', np.array(imdb_train2014))
-np.save('./imdb_vqa_v2/imdb_val2014.npy', np.array(imdb_val2014))
-np.save('./imdb_vqa_v2/imdb_trainval2014.npy', np.array(imdb_train2014 + imdb_val2014))
-np.save('./imdb_vqa_v2/imdb_test2015.npy', np.array(imdb_test2015))
-np.save('./imdb_vqa_v2/imdb_test-dev2015.npy', np.array(imdb_test_dev2015))
+imdb_root = './imdb_vqa_v2_butd' if butd else './imdb_vqa_v2'
+
+os.makedirs(imdb_root, exist_ok=True)
+np.save(imdb_root + '/imdb_train2014.npy', np.array(imdb_train2014))
+np.save(imdb_root + '/imdb_val2014.npy', np.array(imdb_val2014))
+np.save(imdb_root + '/imdb_trainval2014.npy', np.array(imdb_train2014 + imdb_val2014))
+np.save(imdb_root + '/imdb_test2015.npy', np.array(imdb_test2015))
+np.save(imdb_root + '/imdb_test-dev2015.npy', np.array(imdb_test_dev2015))

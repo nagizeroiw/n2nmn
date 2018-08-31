@@ -64,27 +64,30 @@ class NMN3Model:
                 att_shape = image_feat_grid.get_shape().as_list()[1:-1] + [1]
                 # Forward declaration of module recursion
                 att_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType(att_shape))
+
                 # _Find
                 case_find = td.Record([('time_idx', td.Scalar(dtype='int32')),
                                        ('batch_idx', td.Scalar(dtype='int32'))])
                 case_find = case_find >> td.Function(modules.FindModule)
+
                 # _Transform
                 case_transform = td.Record([('input_0', att_expr_decl()),
                                             ('time_idx', td.Scalar('int32')),
                                             ('batch_idx', td.Scalar('int32'))])
                 case_transform = case_transform >> td.Function(modules.TransformModule)
+
                 # _And
                 case_and = td.Record([('input_0', att_expr_decl()),
                                       ('input_1', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
                                       ('batch_idx', td.Scalar('int32'))])
                 case_and = case_and >> td.Function(modules.AndModule)
+
                 # _Describe
                 case_describe = td.Record([('input_0', att_expr_decl()),
                                            ('time_idx', td.Scalar('int32')),
                                            ('batch_idx', td.Scalar('int32'))])
-                case_describe = case_describe >> \
-                    td.Function(modules.DescribeModule)
+                case_describe = case_describe >> td.Function(modules.DescribeModule)
 
                 recursion_cases = td.OneOf(td.GetItem('module'), {
                     '_Find': case_find,
@@ -102,6 +105,8 @@ class NMN3Model:
                 # compile and get the output scores
                 self.compiler = td.Compiler.create(output_scores)
                 self.scores_nmn = self.compiler.output_tensors[0]
+
+                self.atts = self.scores_nmn
 
             # Add a question prior network if specified
             self.use_qpn = use_qpn

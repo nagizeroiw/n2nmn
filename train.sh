@@ -1,0 +1,2 @@
+python exp_vqa/train_vqa2_gt_layout.py
+python exp_vqa/train_vqa2_rl_gt_layout.py

@@ -3,11 +3,15 @@ from __future__ import absolute_import, division, print_function
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_name', required=True)
+parser.add_argument('--butd', type=int, default=0)
 parser.add_argument('--snapshot_name', required=True)
 parser.add_argument('--test_split', required=True)
 parser.add_argument('--gpu_id', type=int, default=0)
 args = parser.parse_args()
 
+butd = True if args.butd == 1 else False
+print('>>> butd', butd)
+print('>>> exp_name', args.exp_name)
 gpu_id = args.gpu_id  # set GPU id to use
 import os; os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
@@ -25,8 +29,11 @@ from models_vqa.nmn3_model import NMN3Model
 from util.vqa_train.data_reader import DataReader
 
 # Module parameters
-H_feat = 14
-W_feat = 14
+
+visualize = False
+
+H_feat = 1 if butd else 14
+W_feat = 36 if butd else 14
 D_feat = 2048
 embed_dim_txt = 300
 embed_dim_nmn = 300
@@ -34,7 +41,8 @@ lstm_dim = 1000
 num_layers = 2
 T_encoder = 26
 T_decoder = 13
-N = 50
+N = 1 if visualize else 50  # 1 is for visualization. N = 50
+visualize_N = 20
 use_qpn = True
 reduce_visfeat_dim = False
 
@@ -48,7 +56,8 @@ vocab_question_file = './exp_vqa/data/vocabulary_vqa.txt'
 vocab_layout_file = './exp_vqa/data/vocabulary_layout.txt'
 vocab_answer_file = './exp_vqa/data/answers_vqa.txt'
 
-imdb_file_tst = './exp_vqa/data/imdb_vqa_v2/imdb_%s.npy' % tst_image_set
+imdb_file_tst = './exp_vqa/data/imdb_vqa_v2_butd/imdb_%s.npy' % tst_image_set if butd \
+    else './exp_vqa/data/imdb_vqa_v2/imdb_%s.npy' % tst_image_set
 
 save_file = './exp_vqa/results/%s/%s.%s.txt' % (exp_name, snapshot_name, tst_image_set)
 os.makedirs(os.path.dirname(save_file), exist_ok=True)
@@ -58,7 +67,8 @@ os.makedirs(os.path.dirname(eval_output_file), exist_ok=True)
 
 assembler = Assembler(vocab_layout_file)
 
-data_reader_tst = DataReader(imdb_file_tst, shuffle=False, one_pass=True,
+do_shuffle = True if visualize else False
+data_reader_tst = DataReader(imdb_file_tst, shuffle=do_shuffle, one_pass=True,
                              batch_size=N,
                              T_encoder=T_encoder,
                              T_decoder=T_decoder,
@@ -93,7 +103,9 @@ nmn3_model_tst = NMN3Model(
 snapshot_saver = tf.train.Saver(max_to_keep=None)  # keep all snapshots
 snapshot_saver.restore(sess, snapshot_file)
 
+
 def run_test(dataset_tst, save_file, eval_output_file):
+    global visualize_N
     if dataset_tst is None:
         return
     print('Running test...')
@@ -107,15 +119,15 @@ def run_test(dataset_tst, save_file, eval_output_file):
     for n_q, batch in enumerate(dataset_tst.batches()):
         # set up input and output tensors
         h = sess.partial_run_setup(
-            [nmn3_model_tst.predicted_tokens, nmn3_model_tst.scores],
+            [nmn3_model_tst.predicted_tokens, nmn3_model_tst.scores, nmn3_model_tst.atts],
             [input_seq_batch, seq_length_batch, image_feat_batch,
              nmn3_model_tst.compiler.loom_input_tensor, expr_validity_batch])
 
         # Part 0 & 1: Run Convnet and generate module layout
         tokens = sess.partial_run(h, nmn3_model_tst.predicted_tokens,
-            feed_dict={input_seq_batch: batch['input_seq_batch'],
-                       seq_length_batch: batch['seq_length_batch'],
-                       image_feat_batch: batch['image_feat_batch']})
+                                  feed_dict={input_seq_batch: batch['input_seq_batch'],
+                                             seq_length_batch: batch['seq_length_batch'],
+                                             image_feat_batch: batch['image_feat_batch']})
 
         # compute the accuracy of the predicted layout
         if dataset_tst.batch_loader.load_gt_layout:
@@ -127,13 +139,22 @@ def run_test(dataset_tst, save_file, eval_output_file):
 
         # Assemble the layout tokens into network structure
         expr_list, expr_validity_array = assembler.assemble(tokens)
+
+        # visualization
+        if visualize:
+            print('>>> question_id\n', batch['qid_list'][0], '\n<<<')
+            print('>>> question_str\n', batch['qstr_list'][0], '\n<<<')
+            print('>>> image_id\n', batch['image_path_list'][0], '\n<<<')
+            print('>>> expr_list\n', expr_list, '\n<<<')
+
         layout_valid += np.sum(expr_validity_array)
         # Build TensorFlow Fold input for NMN
         expr_feed = nmn3_model_tst.compiler.build_feed_dict(expr_list)
         expr_feed[expr_validity_batch] = expr_validity_array
 
         # Part 2: Run NMN and learning steps
-        scores_val = sess.partial_run(h, nmn3_model_tst.scores, feed_dict=expr_feed)
+        scores_val, atts = sess.partial_run(h, (nmn3_model_tst.scores, nmn3_model_tst.atts),
+                                      feed_dict=expr_feed)
         scores_val[:, 0] = -1e10  # remove <unk> answer
 
         # compute accuracy
@@ -142,9 +163,18 @@ def run_test(dataset_tst, save_file, eval_output_file):
             labels = batch['answer_label_batch']
         num_questions += len(expr_validity_array)
 
+        if visualize:
+            print('>>>\n', answer_word_list[predictions[0]], '\n<<<')
+
         qid_list = batch['qid_list']
         output_qids_answers += [{'question_id': int(qid), 'answer': answer_word_list[p]}
                                 for qid, p in zip(qid_list, predictions)]
+
+        # visualization
+        visualize_N -= 1
+        if visualize and visualize_N == 0:
+            break
+
 
     layout_accuracy = layout_correct / num_questions
     layout_validity = layout_valid / num_questions

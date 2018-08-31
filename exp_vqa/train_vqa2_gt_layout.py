@@ -3,8 +3,9 @@ from __future__ import absolute_import, division, print_function
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu_id', type=int, default=0)
+parser.add_argument('--butd', type=int, default=0)
 args = parser.parse_args()
-
+butd = True if args.butd == 1 else False
 gpu_id = args.gpu_id  # set GPU id to use
 import os; os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
@@ -20,9 +21,10 @@ from models_vqa.nmn3_assembler import Assembler
 from models_vqa.nmn3_model import NMN3Model
 from util.vqa_train.data_reader import DataReader
 
+
 # Module parameters
-H_feat = 14
-W_feat = 14
+H_feat = 1 if butd else 14
+W_feat = 36 if butd else 14
 D_feat = 2048
 embed_dim_txt = 300
 embed_dim_nmn = 300
@@ -44,7 +46,7 @@ weight_decay = 0
 baseline_decay = 0.99
 max_iter = 80000
 snapshot_interval = 5000
-exp_name = "vqa2_gt_layout"
+exp_name = "vqa2_gt_layout_butd" if butd else "vqa2_gt_layout"
 snapshot_dir = './exp_vqa/tfmodel/%s/' % exp_name
 
 # Log params
@@ -56,7 +58,8 @@ vocab_question_file = './exp_vqa/data/vocabulary_vqa.txt'
 vocab_layout_file = './exp_vqa/data/vocabulary_layout.txt'
 vocab_answer_file = './exp_vqa/data/answers_vqa.txt'
 
-imdb_file_trn = './exp_vqa/data/imdb_vqa_v2/imdb_trainval2014.npy'
+imdb_file_trn = './exp_vqa/data/imdb_vqa_v2_butd/imdb_trainval2014.npy' if butd \
+    else './exp_vqa/data/imdb_vqa_v2/imdb_trainval2014.npy'
 
 assembler = Assembler(vocab_layout_file)
 
