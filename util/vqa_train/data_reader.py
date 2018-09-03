@@ -183,7 +183,8 @@ class DataReader:
         while True:
             # Get a batch from the prefetching queue
             if self.prefetch_queue.empty():
-                print('data reader: waiting for data loading (IO is slow)...')
+                pass
+                # print('data reader: waiting for data loading (IO is slow)...')
             batch = self.prefetch_queue.get(block=True)
             if batch is None:
                 assert(self.one_pass)

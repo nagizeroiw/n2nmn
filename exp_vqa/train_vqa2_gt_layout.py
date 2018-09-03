@@ -4,6 +4,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu_id', type=int, default=0)
 parser.add_argument('--butd', type=int, default=0)
+parser.add_argument('--exp_name', type=str, required=True)
 args = parser.parse_args()
 butd = True if args.butd == 1 else False
 gpu_id = args.gpu_id  # set GPU id to use
@@ -46,7 +47,7 @@ weight_decay = 0
 baseline_decay = 0.99
 max_iter = 80000
 snapshot_interval = 5000
-exp_name = "vqa2_gt_layout_butd" if butd else "vqa2_gt_layout"
+exp_name = args.exp_name # "vqa2_gt_layout_butd" if butd else "vqa2_gt_layout"
 snapshot_dir = './exp_vqa/tfmodel/%s/' % exp_name
 
 # Log params

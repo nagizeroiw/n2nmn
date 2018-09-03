@@ -54,7 +54,7 @@ max_iter = 80000
 snapshot_interval = 5000
 
 # this is a historical mistake
-exp_name = "vqa2_rl_gt_layout_butd" if butd else "vqa2_rl_gt_layout"
+exp_name = "vqa2_rl_butd" if butd else "vqa2_rl_gt_layout"
 pretrained_model = args.pretrained_model
 snapshot_dir = './exp_vqa/tfmodel/%s/' % exp_name
 
