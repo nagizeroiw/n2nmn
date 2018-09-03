@@ -6,6 +6,7 @@
 *-checkpoint.ipynb
 *~
 *.swp
+*.whl
 
 exp_*/vqa-dataset/*
 exp_*/coco-images/*
