@@ -4,6 +4,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu_id', type=int, default=0)
 parser.add_argument('--butd', type=int, default=0)
+parser.add_argument('--exp_name', type=str, required=True)
 parser.add_argument(
     '--pretrained_model',
     default='./exp_vqa/tfmodel/vqa2_gt_layout/00080000')
@@ -54,7 +55,7 @@ max_iter = 80000
 snapshot_interval = 5000
 
 # this is a historical mistake
-exp_name = "vqa2_rl_butd" if butd else "vqa2_rl_gt_layout"
+exp_name = args.exp_name
 pretrained_model = args.pretrained_model
 snapshot_dir = './exp_vqa/tfmodel/%s/' % exp_name
 
