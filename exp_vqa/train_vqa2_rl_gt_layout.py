@@ -51,7 +51,7 @@ lambda_entropy = 0.005
 weight_decay = 0
 baseline_decay = 0.99
 max_grad_l2_norm = 10
-max_iter = 80000
+max_iter = 160000
 snapshot_interval = 5000
 
 # this is a historical mistake

@@ -190,12 +190,34 @@ class Modules:
         att_grid.set_shape(self.att_shape)
         return att_grid
 
+    def OrModule(self, input_0, input_1, time_idx, batch_idx,
+        scope='OrModule', reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+
+        # Mapping: att_grid x att_grid -> att_grid
+        # Input:
+        #   input_0: [N, H, W, 1]
+        #   input_1: [N, H, W, 1]
+        # Output:
+        #   att_grid: [N, H, W, 1]
+        #
+        # Implementation:
+        #   Take the elementwise-max
+        with tf.variable_scope(self.module_variable_scope):
+            with tf.variable_scope(scope, reuse=reuse):
+                att_grid = tf.maximum(input_0, input_1)
+
+        att_grid.set_shape(self.att_shape)
+        return att_grid
+
     def DescribeModule(self, input_0, time_idx, batch_idx,
         map_dim=1024, scope='DescribeModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
 
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
+        # [N, H, W, d_img]
         text_param = self._slice_word_vecs(time_idx, batch_idx)
+        # [N, d_txt]
         encoder_states = self._slice_encoder_states(batch_idx)
         # Mapping: att_grid -> answer probs
         # Input:

@@ -83,6 +83,13 @@ class NMN3Model:
                                       ('batch_idx', td.Scalar('int32'))])
                 case_and = case_and >> td.Function(modules.AndModule)
 
+                # _Or
+                case_or = td.Record([('input_0', att_expr_decl()),
+                                     ('input_1', att_expr_decl()),
+                                     ('time_idx', td.Scalar('int32')),
+                                     ('batch_idx', td.Scalar('int32'))])
+                case_or = case_or >> td.Function(modules.OrModule)
+
                 # _Describe
                 case_describe = td.Record([('input_0', att_expr_decl()),
                                            ('time_idx', td.Scalar('int32')),
@@ -92,7 +99,8 @@ class NMN3Model:
                 recursion_cases = td.OneOf(td.GetItem('module'), {
                     '_Find': case_find,
                     '_Transform': case_transform,
-                    '_And': case_and})
+                    '_And': case_and,
+                    '_Or': case_or})
                 att_expr_decl.resolve_to(recursion_cases)
 
                 # For invalid expressions, define a dummy answer
