@@ -99,6 +99,7 @@ nmn3_model_trn = NMN3Model(
     num_choices=num_choices,
     use_qpn=use_qpn, qpn_dropout=qpn_dropout, reduce_visfeat_dim=reduce_visfeat_dim,
     use_gt_layout=use_gt_layout,
+    use_count_module=use_count_module,
     gt_layout_batch=gt_layout_batch)
 
 # Loss function

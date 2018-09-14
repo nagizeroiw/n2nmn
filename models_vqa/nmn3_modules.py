@@ -260,3 +260,22 @@ class Modules:
                 scores = fc('fc_eltwise', eltwise_mult, output_dim=self.num_choices)
 
         return scores
+
+    def CountModule(self, input_0, time_idx, batch_idx, scope='CountModule', reuse=True):
+
+        # att_grid -> answer probs
+        with tf.variable_scope(self.module_variable_scope):
+            with tf.variable_scope(scope, reuse=True):
+                H, W = self.att_shape[1:3]
+                att_all = tf.reshape(input_0, to_T([-1, H * M]))
+                att_min = tf.reduce_min(input_0, axis=[1, 2])
+                att_max = tf.reduce_max(input_0, axis=[1, 2])
+                # att_reduced [N, 3]
+                att_concat = tf.concat([att_all, att_min, att_max], axis=1)
+                scores = fc('fc_scores', att_concat, output_dim=self.num_choices)
+
+        return scores
+
+
+
+

@@ -104,7 +104,7 @@ nmn3_model_trn = NMN3Model(
     decoder_dropout=decoder_dropout,
     decoder_sampling=decoder_sampling,
     num_choices=num_choices,
-    use_qpn=use_qpn, qpn_dropout=qpn_dropout, reduce_visfeat_dim=reduce_visfeat_dim)
+    use_count_module=use_count_module, use_qpn=use_qpn, qpn_dropout=qpn_dropout, reduce_visfeat_dim=reduce_visfeat_dim)
 
 finetune_lr = 1e-4  # 1/10 of the default 1e-3 for adam
 

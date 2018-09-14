@@ -11,6 +11,7 @@ _module_input_num = {
     '_Transform': 1,
     '_And': 2,
     '_Or': 2,
+    '_Count': 1,
     '_Describe': 1}
 
 # output type of each module
@@ -19,6 +20,7 @@ _module_output_type = {
     '_Transform': 'att',
     '_And': 'att',
     '_Or': 'att',
+    '_Count': 1,
     '_Describe': 'ans'}
 
 INVALID_EXPR = 'INVALID_EXPR'

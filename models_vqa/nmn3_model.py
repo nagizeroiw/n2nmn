@@ -96,6 +96,12 @@ class NMN3Model:
                                            ('batch_idx', td.Scalar('int32'))])
                 case_describe = case_describe >> td.Function(modules.DescribeModule)
 
+                # _Count 
+                case_count = td.Record([('input_0', att_expr_decl()),
+                                           ('time_idx', td.Scalar('int32')),
+                                           ('batch_idx', td.Scalar('int32'))])
+                case_count = case_count >> td.Function(modules.CountModule)
+
                 recursion_cases = td.OneOf(td.GetItem('module'), {
                     '_Find': case_find,
                     '_Transform': case_transform,
@@ -108,6 +114,7 @@ class NMN3Model:
                 dummy_scores = td.Void() >> td.FromTensor(np.zeros(num_choices, np.float32))
                 output_scores = td.OneOf(td.GetItem('module'), {
                     '_Describe': case_describe,
+                    '_Count': case_count,
                     INVALID_EXPR: dummy_scores})
 
                 # compile and get the output scores

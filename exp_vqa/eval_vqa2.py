@@ -98,6 +98,7 @@ nmn3_model_tst = NMN3Model(
     decoder_dropout=False,
     decoder_sampling=False,
     num_choices=num_choices,
+    use_count_module=use_count_module,
     use_qpn=use_qpn, qpn_dropout=False, reduce_visfeat_dim=reduce_visfeat_dim)
 
 snapshot_saver = tf.train.Saver(max_to_keep=None)  # keep all snapshots
