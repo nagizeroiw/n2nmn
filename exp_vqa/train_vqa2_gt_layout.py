@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gpu_id', type=int, default=0)
 parser.add_argument('--butd', type=int, default=0)
 parser.add_argument('--exp_name', type=str, required=True)
+parser.add_argument('--pretrained_model', type=str, default=None)
 args = parser.parse_args()
 butd = True if args.butd == 1 else False
 gpu_id = args.gpu_id  # set GPU id to use
@@ -70,7 +71,8 @@ data_reader_trn = DataReader(imdb_file_trn, shuffle=True, one_pass=False,
                              T_decoder=T_decoder,
                              assembler=assembler,
                              vocab_question_file=vocab_question_file,
-                             vocab_answer_file=vocab_answer_file)
+                             vocab_answer_file=vocab_answer_file,
+                             use_count_module=True)
 
 num_vocab_txt = data_reader_trn.batch_loader.vocab_dict.num_vocab
 num_vocab_nmn = len(assembler.module_names)
@@ -99,7 +101,6 @@ nmn3_model_trn = NMN3Model(
     num_choices=num_choices,
     use_qpn=use_qpn, qpn_dropout=qpn_dropout, reduce_visfeat_dim=reduce_visfeat_dim,
     use_gt_layout=use_gt_layout,
-    use_count_module=use_count_module,
     gt_layout_batch=gt_layout_batch)
 
 # Loss function
@@ -167,6 +168,11 @@ glove_mat = np.load(glove_mat_file)
 with tf.variable_scope('neural_module_network/layout_generation/encoder_decoder/encoder', reuse=True):
     embedding_mat = tf.get_variable('embedding_mat')
     sess.run(tf.assign(embedding_mat, glove_mat))
+
+# Load previous model (if necessary)
+if args.pretrained_model is not None:
+    snapshot_loader = tf.train.Saver([v for v in tf.global_variables()])
+    snapshot_loader.restore(sess, args.pretrained_model)
 
 def run_training(max_iter, dataset_trn):
     avg_accuracy = 0

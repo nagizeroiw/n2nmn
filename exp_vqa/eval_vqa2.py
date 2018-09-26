@@ -74,7 +74,8 @@ data_reader_tst = DataReader(imdb_file_tst, shuffle=do_shuffle, one_pass=True,
                              T_decoder=T_decoder,
                              assembler=assembler,
                              vocab_question_file=vocab_question_file,
-                             vocab_answer_file=vocab_answer_file)
+                             vocab_answer_file=vocab_answer_file,
+                             use_count_module=True)
 
 num_vocab_txt = data_reader_tst.batch_loader.vocab_dict.num_vocab
 num_vocab_nmn = len(assembler.module_names)
@@ -98,7 +99,6 @@ nmn3_model_tst = NMN3Model(
     decoder_dropout=False,
     decoder_sampling=False,
     num_choices=num_choices,
-    use_count_module=use_count_module,
     use_qpn=use_qpn, qpn_dropout=False, reduce_visfeat_dim=reduce_visfeat_dim)
 
 snapshot_saver = tf.train.Saver(max_to_keep=None)  # keep all snapshots

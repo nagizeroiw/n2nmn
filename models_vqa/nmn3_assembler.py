@@ -20,7 +20,7 @@ _module_output_type = {
     '_Transform': 'att',
     '_And': 'att',
     '_Or': 'att',
-    '_Count': 1,
+    '_Count': 'ans',
     '_Describe': 'ans'}
 
 INVALID_EXPR = 'INVALID_EXPR'

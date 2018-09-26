@@ -51,7 +51,7 @@ lambda_entropy = 0.005
 weight_decay = 0
 baseline_decay = 0.99
 max_grad_l2_norm = 10
-max_iter = 160000
+max_iter = 80000
 snapshot_interval = 5000
 
 # this is a historical mistake
@@ -79,7 +79,8 @@ data_reader_trn = DataReader(imdb_file_trn, shuffle=True, one_pass=False,
                              T_decoder=T_decoder,
                              assembler=assembler,
                              vocab_question_file=vocab_question_file,
-                             vocab_answer_file=vocab_answer_file)
+                             vocab_answer_file=vocab_answer_file,
+                             use_count_module=True)
 
 num_vocab_txt = data_reader_trn.batch_loader.vocab_dict.num_vocab
 num_vocab_nmn = len(assembler.module_names)
@@ -104,7 +105,7 @@ nmn3_model_trn = NMN3Model(
     decoder_dropout=decoder_dropout,
     decoder_sampling=decoder_sampling,
     num_choices=num_choices,
-    use_count_module=use_count_module, use_qpn=use_qpn, qpn_dropout=qpn_dropout, reduce_visfeat_dim=reduce_visfeat_dim)
+    use_qpn=use_qpn, qpn_dropout=qpn_dropout, reduce_visfeat_dim=reduce_visfeat_dim)
 
 finetune_lr = 1e-4  # 1/10 of the default 1e-3 for adam
 
