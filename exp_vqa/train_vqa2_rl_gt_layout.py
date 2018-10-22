@@ -25,6 +25,7 @@ sess = tf.Session(config=tf.ConfigProto(
 from models_vqa.nmn3_assembler import Assembler
 from models_vqa.nmn3_model import NMN3Model
 from util.vqa_train.data_reader import DataReader
+from util.vqa_train.data_reader_pair import DataReaderPair
 
 # Module parameters
 H_feat = 1 if butd else 14
@@ -68,18 +69,19 @@ vocab_question_file = './exp_vqa/data/vocabulary_vqa.txt'
 vocab_layout_file = './exp_vqa/data/vocabulary_layout.txt'
 vocab_answer_file = './exp_vqa/data/answers_vqa.txt'
 
-imdb_file_trn = './exp_vqa/data/imdb_vqa_v2_butd/imdb_trainval2014.npy' if butd \
+imdb_file_trn = './exp_vqa/data/imdb_vqa_v2_butd/imdb_trainval2014.pkl' if butd \
   else './exp_vqa/data/imdb_vqa_v2/imdb_trainval2014.npy'
 
 assembler = Assembler(vocab_layout_file)
 
-data_reader_trn = DataReader(imdb_file_trn, shuffle=True, one_pass=False,
+data_reader_trn = DataReaderPair(imdb_file_trn, shuffle=True, one_pass=False,
                              batch_size=N,
                              T_encoder=T_encoder,
                              T_decoder=T_decoder,
                              assembler=assembler,
                              vocab_question_file=vocab_question_file,
-                             vocab_answer_file=vocab_answer_file)
+                             vocab_answer_file=vocab_answer_file,
+                             use_count_module=True)
 
 num_vocab_txt = data_reader_trn.batch_loader.vocab_dict.num_vocab
 num_vocab_nmn = len(assembler.module_names)

@@ -59,6 +59,7 @@ class Modules:
         self.TransformModule(input_att, time_idx, batch_idx, reuse=False)
         self.AndModule(input_att, input_att, time_idx, batch_idx, reuse=False)
         self.DescribeModule(input_att, time_idx, batch_idx, reuse=False)
+        self.CountModule(input_att, time_idx, batch_idx, reuse=False)
 
     def _slice_image_feat_grid(self, batch_idx):
         # In TF Fold, batch_idx is a [N_batch, 1] tensor
@@ -190,7 +191,19 @@ class Modules:
         att_grid.set_shape(self.att_shape)
         return att_grid
 
-    def OrModule(self, input_0, input_1, time_idx, batch_idx, scope='OrModule', reuse=True):
+    def OrModule(self, input_0, input_1, time_idx, batch_idx,
+        scope='OrModule', reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+
+        # Mapping: att_grid x att_grid -> att_grid
+        # Input:
+        #   input_0: [N, H, W, 1]
+        #   input_1: [N, H, W, 1]
+        # Output:
+        #   att_grid: [N, H, W, 1]
+        #
+        # Implementation:
+        #   Take the elementwise-max
         with tf.variable_scope(self.module_variable_scope):
             with tf.variable_scope(scope, reuse=reuse):
                 att_grid = tf.maximum(input_0, input_1)
@@ -203,7 +216,9 @@ class Modules:
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
 
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
+        # [N, H, W, d_img]
         text_param = self._slice_word_vecs(time_idx, batch_idx)
+        # [N, d_txt]
         encoder_states = self._slice_encoder_states(batch_idx)
         # Mapping: att_grid -> answer probs
         # Input:
@@ -246,3 +261,38 @@ class Modules:
                 scores = fc('fc_eltwise', eltwise_mult, output_dim=self.num_choices)
 
         return scores
+
+    def CountModule(self, input_0, time_idx, batch_idx, map_dim=1024, scope='CountModule', reuse=True):
+
+
+        image_feat_grid = self._slice_image_feat_grid(batch_idx)
+        text_param = self._slice_word_vecs(time_idx, batch_idx)
+
+        # att_grid -> answer probs
+        with tf.variable_scope(self.module_variable_scope):
+            with tf.variable_scope(scope, reuse=reuse):
+                N = tf.shape(time_idx)[0]
+                H, W = self.att_shape[1:3]
+                att_all = tf.reshape(input_0, to_T([-1, H * W]))
+                att_min = tf.reduce_min(input_0, axis=[1, 2])
+                att_max = tf.reduce_max(input_0, axis=[1, 2])
+                # att_reduced [N, 3]
+                att_concat = tf.concat([att_all, att_min, att_max], axis=1)
+                att_mapped = fc('fc_att', att_concat, output_dim=map_dim)
+
+                # text_feat
+                text_mapped = fc('fc_text', text_param, output_dim=map_dim)
+
+                # image feature
+                att_softmax = tf.reshape(tf.nn.softmax(tf.reshape(input_0, to_T([N, H * W]))), to_T([N, H, W, 1]))
+                att_feat = tf.reduce_sum(image_feat_grid * att_softmax, axis=[1, 2])
+                att_feat_mapped = tf.reshape(fc('fc_att_feat', att_feat, output_dim=map_dim), to_T([N, map_dim]))
+
+                eltwise_mult = tf.nn.l2_normalize(text_mapped * att_feat_mapped * att_mapped, 1)
+                scores = fc('fc_scores', eltwise_mult, output_dim=self.num_choices)
+
+        return scores
+
+
+
+

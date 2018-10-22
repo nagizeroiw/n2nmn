@@ -13,7 +13,7 @@ from models_vqa.question_prior_net import question_prior_net
 from util.cnn import fc_layer as fc, conv_layer as conv
 
 class NMN3Model:
-    def __init__(self, image_feat_grid, text_seq_batch, seq_length_batch,
+    def __init__(self, image_feat_grid, raw_feat_grid, text_seq_batch, seq_length_batch,
         T_decoder, num_vocab_txt, embed_dim_txt, num_vocab_nmn,
         embed_dim_nmn, lstm_dim, num_layers, assembler,
         encoder_dropout, decoder_dropout, decoder_sampling,
@@ -83,16 +83,30 @@ class NMN3Model:
                                       ('batch_idx', td.Scalar('int32'))])
                 case_and = case_and >> td.Function(modules.AndModule)
 
+                # _Or
+                case_or = td.Record([('input_0', att_expr_decl()),
+                                     ('input_1', att_expr_decl()),
+                                     ('time_idx', td.Scalar('int32')),
+                                     ('batch_idx', td.Scalar('int32'))])
+                case_or = case_or >> td.Function(modules.OrModule)
+
                 # _Describe
                 case_describe = td.Record([('input_0', att_expr_decl()),
                                            ('time_idx', td.Scalar('int32')),
                                            ('batch_idx', td.Scalar('int32'))])
                 case_describe = case_describe >> td.Function(modules.DescribeModule)
 
+                # _Count 
+                case_count = td.Record([('input_0', att_expr_decl()),
+                                           ('time_idx', td.Scalar('int32')),
+                                           ('batch_idx', td.Scalar('int32'))])
+                case_count = case_count >> td.Function(modules.CountModule)
+
                 recursion_cases = td.OneOf(td.GetItem('module'), {
                     '_Find': case_find,
                     '_Transform': case_transform,
-                    '_And': case_and})
+                    '_And': case_and,
+                    '_Or': case_or})
                 att_expr_decl.resolve_to(recursion_cases)
 
                 # For invalid expressions, define a dummy answer
@@ -100,6 +114,7 @@ class NMN3Model:
                 dummy_scores = td.Void() >> td.FromTensor(np.zeros(num_choices, np.float32))
                 output_scores = td.OneOf(td.GetItem('module'), {
                     '_Describe': case_describe,
+                    '_Count': case_count,
                     INVALID_EXPR: dummy_scores})
 
                 # compile and get the output scores

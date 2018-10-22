@@ -61,7 +61,7 @@ imdb_file_tst = './exp_vqa/data/imdb_vqa_v2_butd/imdb_%s.npy' % tst_image_set if
 
 save_file = './exp_vqa/results/%s/%s.%s.txt' % (exp_name, snapshot_name, tst_image_set)
 os.makedirs(os.path.dirname(save_file), exist_ok=True)
-eval_output_name = 'vqa_OpenEnded_mscoco_%s_%s_%s_results.json' % (tst_image_set, exp_name, snapshot_name)
+eval_output_name = 'vqa2_%s_%s_%s_results.json' % (tst_image_set, exp_name, snapshot_name)
 eval_output_file = './exp_vqa/eval_outputs/%s/%s' % (exp_name, eval_output_name)
 os.makedirs(os.path.dirname(eval_output_file), exist_ok=True)
 
@@ -74,7 +74,8 @@ data_reader_tst = DataReader(imdb_file_tst, shuffle=do_shuffle, one_pass=True,
                              T_decoder=T_decoder,
                              assembler=assembler,
                              vocab_question_file=vocab_question_file,
-                             vocab_answer_file=vocab_answer_file)
+                             vocab_answer_file=vocab_answer_file,
+                             use_count_module=True)
 
 num_vocab_txt = data_reader_tst.batch_loader.vocab_dict.num_vocab
 num_vocab_nmn = len(assembler.module_names)
