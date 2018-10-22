@@ -190,6 +190,14 @@ class Modules:
         att_grid.set_shape(self.att_shape)
         return att_grid
 
+    def OrModule(self, input_0, input_1, time_idx, batch_idx, scope='OrModule', reuse=True):
+        with tf.variable_scope(self.module_variable_scope):
+            with tf.variable_scope(scope, reuse=reuse):
+                att_grid = tf.maximum(input_0, input_1)
+
+        att_grid.set_shape(self.att_shape)
+        return att_grid
+
     def DescribeModule(self, input_0, time_idx, batch_idx,
         map_dim=1024, scope='DescribeModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
