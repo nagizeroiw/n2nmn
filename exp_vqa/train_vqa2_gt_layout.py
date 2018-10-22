@@ -22,12 +22,16 @@ sess = tf.Session(config=tf.ConfigProto(
 from models_vqa.nmn3_assembler import Assembler
 from models_vqa.nmn3_model import NMN3Model
 from util.vqa_train.data_reader import DataReader
+from util.vqa_train.data_reader_pair import DataReaderPair
 
 
 # Module parameters
 H_feat = 1 if butd else 14
 W_feat = 36 if butd else 14
 D_feat = 2048
+H_raw_feat = 14
+W_raw_feat = 14
+D_raw_feat = 14
 embed_dim_txt = 300
 embed_dim_nmn = 300
 lstm_dim = 1000
@@ -37,7 +41,7 @@ decoder_dropout = True
 decoder_sampling = False
 T_encoder = 26
 T_decoder = 13
-N = 64
+N = 64  # shall be 32 when pairwise training
 use_qpn = True
 qpn_dropout = True
 reduce_visfeat_dim = False
@@ -60,13 +64,13 @@ vocab_question_file = './exp_vqa/data/vocabulary_vqa.txt'
 vocab_layout_file = './exp_vqa/data/vocabulary_layout.txt'
 vocab_answer_file = './exp_vqa/data/answers_vqa.txt'
 
-imdb_file_trn = './exp_vqa/data/imdb_vqa_v2_butd/imdb_trainval2014.npy' if butd \
+imdb_file_trn = './exp_vqa/data/imdb_vqa_v2_butd/imdb_trainval2014.pkl' if butd \
     else './exp_vqa/data/imdb_vqa_v2/imdb_trainval2014.npy'
 
 assembler = Assembler(vocab_layout_file)
 
-data_reader_trn = DataReader(imdb_file_trn, shuffle=True, one_pass=False,
-                             batch_size=N,
+data_reader_trn = DataReaderPair(imdb_file_trn, shuffle=True, one_pass=False,
+                             batch_size=int(N / 2),
                              T_encoder=T_encoder,
                              T_decoder=T_decoder,
                              assembler=assembler,
@@ -82,6 +86,7 @@ num_choices = data_reader_trn.batch_loader.answer_dict.num_vocab
 input_seq_batch = tf.placeholder(tf.int32, [None, None])
 seq_length_batch = tf.placeholder(tf.int32, [None])
 image_feat_batch = tf.placeholder(tf.float32, [None, H_feat, W_feat, D_feat])
+raw_feat_batch = tf.placeholder(tf.float32, [None, H_raw_feat, W_raw_feat, D_raw_feat])
 expr_validity_batch = tf.placeholder(tf.bool, [None])
 answer_label_batch = tf.placeholder(tf.int32, [None])
 use_gt_layout = tf.constant(True, dtype=tf.bool)
@@ -89,7 +94,7 @@ gt_layout_batch = tf.placeholder(tf.int32, [None, None])
 
 # The model for training
 nmn3_model_trn = NMN3Model(
-    image_feat_batch, input_seq_batch,
+    image_feat_batch, raw_feat_batch, input_seq_batch,
     seq_length_batch, T_decoder=T_decoder,
     num_vocab_txt=num_vocab_txt, embed_dim_txt=embed_dim_txt,
     num_vocab_nmn=num_vocab_nmn, embed_dim_nmn=embed_dim_nmn,
@@ -184,7 +189,7 @@ def run_training(max_iter, dataset_trn):
         h = sess.partial_run_setup(
             [nmn3_model_trn.predicted_tokens, nmn3_model_trn.entropy_reg,
              nmn3_model_trn.scores, avg_sample_loss, train_step],
-            [input_seq_batch, seq_length_batch, image_feat_batch,
+            [input_seq_batch, seq_length_batch, image_feat_batch, raw_feat_batch,
              nmn3_model_trn.compiler.loom_input_tensor, expr_validity_batch,
              answer_label_batch, gt_layout_batch])
 
@@ -194,6 +199,7 @@ def run_training(max_iter, dataset_trn):
             feed_dict={input_seq_batch: batch['input_seq_batch'],
                        seq_length_batch: batch['seq_length_batch'],
                        image_feat_batch: batch['image_feat_batch'],
+                       raw_feat_batch: batch['raw_feat_batch'],
                        gt_layout_batch: batch['gt_layout_batch']})
         # Assemble the layout tokens into network structure
         expr_list, expr_validity_array = assembler.assemble(tokens)

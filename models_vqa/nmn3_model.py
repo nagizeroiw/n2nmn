@@ -13,7 +13,7 @@ from models_vqa.question_prior_net import question_prior_net
 from util.cnn import fc_layer as fc, conv_layer as conv
 
 class NMN3Model:
-    def __init__(self, image_feat_grid, text_seq_batch, seq_length_batch,
+    def __init__(self, image_feat_grid, raw_feat_grid, text_seq_batch, seq_length_batch,
         T_decoder, num_vocab_txt, embed_dim_txt, num_vocab_nmn,
         embed_dim_nmn, lstm_dim, num_layers, assembler,
         encoder_dropout, decoder_dropout, decoder_sampling,

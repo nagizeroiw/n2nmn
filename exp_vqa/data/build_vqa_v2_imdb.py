@@ -5,16 +5,18 @@ from collections import defaultdict
 import sys
 sys.path.append('../../')
 from util import text_processing
-
+import pickle as pkl
 butd = True
 
 vocab_answer_file = './answers_vqa.txt'
 annotation_file = '../vqa-dataset/Annotations/v2_mscoco_%s_annotations.json'
 question_file = '../vqa-dataset/Questions/v2_OpenEnded_mscoco_%s_questions.json'
+pairs_file = '../vqa-dataset/Annotations/v2_mscoco_%s_complementary_pairs.json'
 gt_layout_file = './v2_gt_layout_%s_new_parse.npy'
 
 image_dir = '../coco-images/%s/'
 feature_dir = './resnet_butd/%s/' if butd else './resnet_res5c/%s/'
+raw_feature_dir = './resnet_res5c/%s/'
 
 answer_dict = text_processing.VocabDict(vocab_answer_file)
 valid_answer_set = set(answer_dict.word_list)
@@ -29,22 +31,31 @@ def build_imdb(image_set):
     if image_set in ['train2014', 'val2014']:
         load_answer = True
         load_gt_layout = True
+        load_pairs = True
         with open(annotation_file % image_set) as f:
             annotations = json.load(f)["annotations"]
             qid2ann_dict = {ann['question_id']: ann for ann in annotations}
         qid2layout_dict = np.load(gt_layout_file % image_set)[()]
+        with open(pairs_file % image_set) as f:
+            pairs = json.load(f)  # list of tuples (question_id_1, question_id_2)
+            qid2pair_dict = {a: b for (a, b) in pairs}
+            qid2pair_dict.update({b: a for (a, b) in pairs})
     else:
         load_answer = False
         load_gt_layout = False
+        load_pairs = False
+        qid2pair_dict = None
     with open(question_file % image_set) as f:
         questions = json.load(f)['questions']
     coco_set_name = image_set.replace('-dev', '')
     abs_image_dir = os.path.abspath(image_dir % coco_set_name)
     abs_feature_dir = os.path.abspath(feature_dir % coco_set_name)
+    abs_raw_feature_dir = os.path.abspath(raw_feature_dir % coco_set_name)
     image_name_template = 'COCO_' + coco_set_name + '_%012d'
-    imdb = [None]*len(questions)
+    imdb = {}
 
     unk_ans_count = 0
+    paired_questions_count = 0
     for n_q, q in enumerate(questions):
         if (n_q+1) % 10000 == 0:
             print('processing %d / %d' % (n_q+1, len(questions)))
@@ -53,6 +64,7 @@ def build_imdb(image_set):
         image_name = image_name_template % image_id
         image_path = os.path.join(abs_image_dir, image_name + '.jpg')
         feature_path = os.path.join(abs_feature_dir, image_name + '.npy')
+        raw_feature_path = os.path.join(abs_raw_feature_dir, image_name + '.npy')
         question_str = q['question']
         question_tokens = text_processing.tokenize(question_str)
 
@@ -61,8 +73,15 @@ def build_imdb(image_set):
               image_id=image_id,
               question_id=question_id,
               feature_path=feature_path,
+              raw_feature_path=raw_feature_path,
               question_str=question_str,
               question_tokens=question_tokens)
+
+        # pairs information
+        if load_pairs:
+            if question_id in qid2pair_dict:
+                iminfo['pair'] = qid2pair_dict[question_id]
+                paired_questions_count += 1
 
         # load answers
         if load_answer:
@@ -75,23 +94,34 @@ def build_imdb(image_set):
             iminfo['valid_answers'] = valid_answers
 
         if load_gt_layout:
-            gt_layout_tokens = qid2layout_dict[question_id]
-            iminfo['gt_layout_tokens'] = gt_layout_tokens
+           gt_layout_tokens = qid2layout_dict[question_id]
+           iminfo['gt_layout_tokens'] = gt_layout_tokens
 
-        imdb[n_q] = iminfo
+        imdb[str(question_id)] = iminfo
     print('total %d out of %d answers are <unk>' % (unk_ans_count, len(questions)))
+    print('%s questions are paired.' % paired_questions_count)
     return imdb
 
 imdb_train2014 = build_imdb('train2014')
 imdb_val2014 = build_imdb('val2014')
 imdb_test2015 = build_imdb('test2015')
 imdb_test_dev2015 = build_imdb('test-dev2015')
-
 imdb_root = './imdb_vqa_v2_butd' if butd else './imdb_vqa_v2'
 
 os.makedirs(imdb_root, exist_ok=True)
+pkl.dump(imdb_train2014, open(imdb_root + '/imdb_train2014.pkl', 'wb'))
+pkl.dump(imdb_val2014, open(imdb_root + '/imdb_val2014.pkl', 'wb'))
+pkl.dump(imdb_test2015, open(imdb_root + '/imdb_test2015.pkl', 'wb'))
+pkl.dump(imdb_test_dev2015, open(imdb_root + '/imdb_test-dev2015.pkl', 'wb'))
+
+imdb_train2014.update(imdb_val2014)
+
+pkl.dump(imdb_train2014, open(imdb_root + '/imdb_trainval2014.pkl', 'wb'))
+'''
 np.save(imdb_root + '/imdb_train2014.npy', np.array(imdb_train2014))
 np.save(imdb_root + '/imdb_val2014.npy', np.array(imdb_val2014))
 np.save(imdb_root + '/imdb_trainval2014.npy', np.array(imdb_train2014 + imdb_val2014))
 np.save(imdb_root + '/imdb_test2015.npy', np.array(imdb_test2015))
 np.save(imdb_root + '/imdb_test-dev2015.npy', np.array(imdb_test_dev2015))
+'''
+
